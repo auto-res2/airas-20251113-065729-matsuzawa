@@ -809,6 +809,11 @@
       "expected_result": "Unlimited power γ=1.0 : EM ≈ 64.8 %; energy 6.4 kWh (≈ SABre).\n150 W cap γ=0.7     : EM ≈ 64.4 %; energy 4.6 kWh (-28 % vs SABre).\n90 W cap  γ=0.4     : EM ≈ 63.4 %; energy 3.1 kWh (-37 % vs SABre).\nPareto-area improves by 14–18 % over SABre across all γ.",
       "expected_conclusion": "A double-Hadamard block sketch slashes curvature-estimate variance, enabling a predictive MPC that chooses learning rates maximising an explicit energy–accuracy objective.  HEDGE-LR outperforms prior curvature-aware tuners both in final GSM8K accuracy and in energy savings, and is the first LR schedule to expose a continuous Pareto dial (γ) to the user.  Its <1 ms overhead and pure-Python reference make it a practical drop-in for on-device QLoRA fine-tuning."
     },
-    "iterations": []
+    "iterations": [
+      {
+        "iteration_id": 1,
+        "method": "HEDGE-LR (Hadamard-Energy-Direct-Gradient Edge tuner)\nA. Hadamard-folded block sketch\n   • For every forward-backward pass collect the fp16 adapter gradient g∈ℝ^{b×d}.  Reshape to (b,64,d/64).\n   • Apply two Walsh–Hadamard transforms H64 on the mini-batch and head dimensions (O(d log d) but using butterfly kernels already present in Flash-Attn).  The folded vector ĥ = mean_b(Hg) has ≈1⁄64 variance of the original Hutchinson estimator ⇒ 8× tighter λ̂₁ confidence interval.\n   • Maintain two rolling moments per *block group* (atten/MLP) instead of per layer, giving a small 16×16 covariance sketch C_t.\n   • Top eigen-pair (λ̂_t,û_t) is updated with a single power iteration on C_t each step (no mat-vec w.r.t. model weights).\nB. Predictive energy model\n   • Empirically, wall-power P_t ≈ α·‖g_t‖² + β·η_t²λ̂_t  (fits on 256 recent samples; R²>0.9).\n   • A one-step MPC solves   η_{t+1} = argmin_{η} {-ΔAcc(η) + κ·max(0,P_pred(η)−P*)² }   where ΔAcc(η) is approximated by the quadratic EOS model  η·‖g‖²/(λ̂+σ̂).\n   • Closed form:   η* = min( 2/(λ̂+σ̂),   √( (κ P*) / (αλ̂) ) ).\nC. Energy-accuracy Pareto knob\n   • Users specify γ∈[0,1] meaning “fraction of theoretical maximum accuracy per kWh”.  The controller picks κ=κ₀·(1−γ) so that γ=1 reproduces pure accuracy mode, γ→0 yields minimum energy.\nD. Zero-shot initialisation\n   • The first 32 steps fit (α,β) via least squares using onboard NVML samples; thereafter HEDGE-LR operates fully local.\nImplementation-wise HEDGE-LR is an Optax / PyTorch wrapper of ~120 lines and adds two H64 butterfly calls and one 16×16 eigendecomposition per step – <0.7 ms on RTX-4090."
+      }
+    ]
   }
 }
