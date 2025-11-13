@@ -812,7 +812,45 @@
     "iterations": [
       {
         "iteration_id": 1,
-        "method": "HEDGE-LR (Hadamard-Energy-Direct-Gradient Edge tuner)\nA. Hadamard-folded block sketch\n   • For every forward-backward pass collect the fp16 adapter gradient g∈ℝ^{b×d}.  Reshape to (b,64,d/64).\n   • Apply two Walsh–Hadamard transforms H64 on the mini-batch and head dimensions (O(d log d) but using butterfly kernels already present in Flash-Attn).  The folded vector ĥ = mean_b(Hg) has ≈1⁄64 variance of the original Hutchinson estimator ⇒ 8× tighter λ̂₁ confidence interval.\n   • Maintain two rolling moments per *block group* (atten/MLP) instead of per layer, giving a small 16×16 covariance sketch C_t.\n   • Top eigen-pair (λ̂_t,û_t) is updated with a single power iteration on C_t each step (no mat-vec w.r.t. model weights).\nB. Predictive energy model\n   • Empirically, wall-power P_t ≈ α·‖g_t‖² + β·η_t²λ̂_t  (fits on 256 recent samples; R²>0.9).\n   • A one-step MPC solves   η_{t+1} = argmin_{η} {-ΔAcc(η) + κ·max(0,P_pred(η)−P*)² }   where ΔAcc(η) is approximated by the quadratic EOS model  η·‖g‖²/(λ̂+σ̂).\n   • Closed form:   η* = min( 2/(λ̂+σ̂),   √( (κ P*) / (αλ̂) ) ).\nC. Energy-accuracy Pareto knob\n   • Users specify γ∈[0,1] meaning “fraction of theoretical maximum accuracy per kWh”.  The controller picks κ=κ₀·(1−γ) so that γ=1 reproduces pure accuracy mode, γ→0 yields minimum energy.\nD. Zero-shot initialisation\n   • The first 32 steps fit (α,β) via least squares using onboard NVML samples; thereafter HEDGE-LR operates fully local.\nImplementation-wise HEDGE-LR is an Optax / PyTorch wrapper of ~120 lines and adds two H64 butterfly calls and one 16×16 eigendecomposition per step – <0.7 ms on RTX-4090."
+        "method": "HEDGE-LR (Hadamard-Energy-Direct-Gradient Edge tuner)\nA. Hadamard-folded block sketch\n   • For every forward-backward pass collect the fp16 adapter gradient g∈ℝ^{b×d}.  Reshape to (b,64,d/64).\n   • Apply two Walsh–Hadamard transforms H64 on the mini-batch and head dimensions (O(d log d) but using butterfly kernels already present in Flash-Attn).  The folded vector ĥ = mean_b(Hg) has ≈1⁄64 variance of the original Hutchinson estimator ⇒ 8× tighter λ̂₁ confidence interval.\n   • Maintain two rolling moments per *block group* (atten/MLP) instead of per layer, giving a small 16×16 covariance sketch C_t.\n   • Top eigen-pair (λ̂_t,û_t) is updated with a single power iteration on C_t each step (no mat-vec w.r.t. model weights).\nB. Predictive energy model\n   • Empirically, wall-power P_t ≈ α·‖g_t‖² + β·η_t²λ̂_t  (fits on 256 recent samples; R²>0.9).\n   • A one-step MPC solves   η_{t+1} = argmin_{η} {-ΔAcc(η) + κ·max(0,P_pred(η)−P*)² }   where ΔAcc(η) is approximated by the quadratic EOS model  η·‖g‖²/(λ̂+σ̂).\n   • Closed form:   η* = min( 2/(λ̂+σ̂),   √( (κ P*) / (αλ̂) ) ).\nC. Energy-accuracy Pareto knob\n   • Users specify γ∈[0,1] meaning “fraction of theoretical maximum accuracy per kWh”.  The controller picks κ=κ₀·(1−γ) so that γ=1 reproduces pure accuracy mode, γ→0 yields minimum energy.\nD. Zero-shot initialisation\n   • The first 32 steps fit (α,β) via least squares using onboard NVML samples; thereafter HEDGE-LR operates fully local.\nImplementation-wise HEDGE-LR is an Optax / PyTorch wrapper of ~120 lines and adds two H64 butterfly calls and one 16×16 eigendecomposition per step – <0.7 ms on RTX-4090.",
+        "experimental_design": {
+          "experiment_summary": "This study evaluates HEDGE-LR, a learning-rate tuner that minimises wall-power while preserving final task accuracy during 4-bit QLoRA fine-tuning. We fine-tune Qwen3-0.6B on GSM8K for 4 000 gradient steps using 80 GB-VRAM GPUs. Every step HEDGE-LR (1) sketches block-level curvature via a double 64-point Walsh–Hadamard transform of the LoRA gradient, (2) updates a 16×16 covariance sketch and extracts the sharpest eigen-value, (3) fits a linear energy model P≈α‖g‖²+βη²λ, and (4) solves a closed-form one-step MPC to choose the next learning rate that maximises expected accuracy gain subject to a soft power budget controlled by user knob γ. Three power settings (unlimited, 150 W, 90 W) and three γ values (1.0, 0.7, 0.4) are tested. Energy consumption is sampled from NVML; accuracy is measured as exact match on the GSM8K test split after training. HEDGE-LR is compared against the best prior curvature-aware tuner, SABre-LR, under identical hardware and data settings. The primary outcome is the Energy–Accuracy Pareto Area, complemented by final EM and total kWh. Hyper-parameter search is restricted to γ, power_cap and κ₀ to quantify robustness.",
+          "evaluation_metrics": [
+            "Energy–Accuracy Pareto Area",
+            "Exact Match Accuracy",
+            "Total Energy (kWh)",
+            "Energy–Accuracy Pareto Area (higher is better)"
+          ],
+          "proposed_method": "HEDGE-LR (Hadamard-Energy-Direct-Gradient Edge tuner)\n1. Hadamard-folded block sketch: reshape each fp16 LoRA gradient to (batch,64,head_size); apply two 64-point Walsh–Hadamard transforms (butterfly kernels reused from FlashAttention) along batch and head axes; average across the batch to obtain a folded estimator with 1⁄64 the variance of Hutchinson. Per transformer block-group maintain first/second moments and a 16×16 covariance sketch C_t; update top eigen-pair (λ̂_t,û_t) by one power iteration each step.\n2. Predictive energy model: fit α and β online from (power,‖g‖²,η²λ̂) tuples collected over the last 256 steps. Predicted power P_pred(η)=α‖g‖²+βη²λ̂ enables a model-predictive controller.\n3. One-step MPC: choose η_{t+1}=argmin_{η}{−η‖g‖²/(λ̂+σ̂)+κ·max(0,P_pred(η)−P*)²}. Closed-form solution η*=min(2/(λ̂+σ̂),√((κP*)/(αλ̂))).\n4. Energy–accuracy Pareto knob: user selects γ∈[0,1]; controller sets κ=κ₀(1−γ), turning the trade-off continuously from accuracy-only (γ=1) to energy-only (γ→0).\n5. Zero-shot initialisation: first 32 steps fit α,β via least squares; thereafter the tuner operates locally. Implementation adds <0.7 ms per step, entirely in Python/PyTorch.",
+          "comparative_methods": [
+            "SABre-LR"
+          ],
+          "models_to_use": [
+            "Qwen3-0.6B"
+          ],
+          "datasets_to_use": [
+            "gsm8k"
+          ],
+          "hyperparameters_to_search": {
+            "gamma": "0.4,0.7,1.0",
+            "power_cap_W": "90,150,unlimited",
+            "kappa_0": "0.01-10"
+          }
+        },
+        "experiment_runs": [
+          {
+            "run_id": "proposed-iter1-Qwen3-0.6B-gsm8k",
+            "method_name": "proposed",
+            "model_name": "Qwen3-0.6B",
+            "dataset_name": "gsm8k"
+          },
+          {
+            "run_id": "comparative-1-iter1-Qwen3-0.6B-gsm8k",
+            "method_name": "comparative-1",
+            "model_name": "Qwen3-0.6B",
+            "dataset_name": "gsm8k"
+          }
+        ]
       }
     ]
   }
