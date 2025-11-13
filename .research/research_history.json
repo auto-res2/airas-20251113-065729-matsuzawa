@@ -6,5 +6,82 @@
     "learning rate optimization",
     "learning rate scheduling",
     "Qwen3-0.6B GSM8K lr"
+  ],
+  "research_study_list": [
+    {
+      "title": "QLoRA: Efficient Finetuning of Quantized LLMs"
+    },
+    {
+      "title": "QLoRA: Efficient Finetuning of Quantized LLMs"
+    },
+    {
+      "title": "QA-LoRA: Quantization-Aware Low-Rank Adaptation of Large Language Models"
+    },
+    {
+      "title": "QuanTA: Efficient High-Rank Fine-Tuning of LLMs with Quantum-Informed Tensor Adaptation"
+    },
+    {
+      "title": "Evaluating Quantized Large Language Models"
+    },
+    {
+      "title": "AutoLRS: Automatic Learning-Rate Schedule by Bayesian Optimization on the Fly"
+    },
+    {
+      "title": "Where Do Large Learning Rates Lead Us?"
+    },
+    {
+      "title": "AdaScale SGD: A User-Friendly Algorithm for Distributed Training"
+    },
+    {
+      "title": "Scaling Laws and Compute-Optimal Training Beyond Fixed Training Durations"
+    },
+    {
+      "title": "The Stability-Efficiency Dilemma: Investigating Sequence Length Warmup for Training GPT Models"
+    },
+    {
+      "title": "AutoLRS: Automatic Learning-Rate Schedule by Bayesian Optimization on the Fly"
+    },
+    {
+      "title": "Reverse engineering learned optimizers reveals known and novel mechanisms"
+    },
+    {
+      "title": "Mechanic: A Learning Rate Tuner"
+    },
+    {
+      "title": "MoMo: Momentum Models for Adaptive Learning Rates"
+    },
+    {
+      "title": "Where Do Large Learning Rates Lead Us?"
+    },
+    {
+      "title": "AutoLRS: Automatic Learning-Rate Schedule by Bayesian Optimization on the Fly"
+    },
+    {
+      "title": "Budgeted Training: Rethinking Deep Neural Network Training Under Resource Constraints"
+    },
+    {
+      "title": "Learning Rate Schedules in the Presence of Distribution Shift"
+    },
+    {
+      "title": "Scaling Laws and Compute-Optimal Training Beyond Fixed Training Durations"
+    },
+    {
+      "title": "Stepping on the Edge: Curvature Aware Learning Rate Tuners"
+    },
+    {
+      "title": "GLM-130B: An Open Bilingual Pre-trained Model"
+    },
+    {
+      "title": "LQER: Low-Rank Quantization Error Reconstruction for LLMs"
+    },
+    {
+      "title": "Evaluating Quantized Large Language Models"
+    },
+    {
+      "title": "GPT3.int8(): 8-bit Matrix Multiplication for Transformers at Scale"
+    },
+    {
+      "title": "QA-LoRA: Quantization-Aware Low-Rank Adaptation of Large Language Models"
+    }
   ]
 }
